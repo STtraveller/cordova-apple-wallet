@@ -130,7 +130,7 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
 }
 
 // Plugin Method - check paired devices
-- (void) checkPairedDevices:(CDVInvokedUrlCommand *)command 
+- (void) checkPairedDevices:(CDVInvokedUrlCommand *)command
 {
     NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
     if (WCSession.isSupported) { // check if the device support to handle an Apple Watch
@@ -152,7 +152,7 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
 }
 
 // Plugin Method - check paired devices By Suffix
-- (void) checkPairedDevicesBySuffix:(CDVInvokedUrlCommand *)command 
+- (void) checkPairedDevicesBySuffix:(CDVInvokedUrlCommand *)command
 {
     NSString * suffix = [command.arguments objectAtIndex:0];
     NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
@@ -321,8 +321,10 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
     // the leaf certificate will be the first element of that array and the sub-CA certificate will follow.
     NSString *certificateOfIndexZeroString = [certificates[0] base64EncodedStringWithOptions:0];
     NSString *certificateOfIndexOneString = [certificates[1] base64EncodedStringWithOptions:0];
-    NSString *nonceString = [nonce base64EncodedStringWithOptions:0];
-    NSString *nonceSignatureString = [nonceSignature base64EncodedStringWithOptions:0];
+    // NSString *nonceString = [nonce base64EncodedStringWithOptions:0];
+    // NSString *nonceSignatureString = [nonceSignature base64EncodedStringWithOptions:0];
+    NSString *nonceString = [self hexString:nonce];
+    NSString *nonceSignatureString = [self hexString:nonceSignature];
     
     NSDictionary* dictionary = @{ @"data" :
                                       @{
@@ -339,6 +341,15 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.completionCallbackId];
 }
 
+// NSData to hexString helper function
+- (NSString *)hexString:(NSData*) _data {
+    const unsigned char *bytes = (const unsigned char *)_data.bytes;
+    NSMutableString *hex = [NSMutableString new];
+    for (NSInteger i = 0; i < _data.length; i++) {
+        [hex appendFormat:@"%02x", bytes[i]];
+    }
+    return [hex copy];
+}
 
 - (void) completeAddPaymentPass:(CDVInvokedUrlCommand *)command
 {
@@ -370,11 +381,12 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
         
         NSString* activationData = [options objectForKey:@"activationData"];
         NSString* encryptedPassData = [options objectForKey:@"encryptedPassData"];
-        NSString* wrappedKey = [options objectForKey:@"wrappedKey"];
+        NSString* ephemeralPublicKey = [options objectForKey:@"ephemeralPublicKey"];
         
         request.activationData = [[NSData alloc] initWithBase64EncodedString:activationData options:0]; //[activationData dataUsingEncoding:NSUTF8StringEncoding];
         request.encryptedPassData = [[NSData alloc] initWithBase64EncodedString:encryptedPassData options:0];
-        request.wrappedKey = [[NSData alloc] initWithBase64EncodedString:wrappedKey options:0];
+        // request.wrappedKey = [[NSData alloc] initWithBase64EncodedString:wrappedKey options:0];
+        request.ephemeralPublicKey = [[NSData alloc] initWithBase64EncodedString:ephemeralPublicKey options:0];
         
         // Issue request
         self.completionHandler(request);
@@ -402,7 +414,7 @@ typedef void (^completedPaymentProcessHandler)(PKAddPaymentPassRequest *request)
 
 @end
 
-// in this case, it is handling if it found 2 watches (more than 1 remote device) 
+// in this case, it is handling if it found 2 watches (more than 1 remote device)
 // means if the credit/debit card is exist on more than 1 remote devices, iPad, iWatch etc
 
 // -(void)eligibilityAddingToWallet2:(CDVInvokedUrlCommand*)command{
